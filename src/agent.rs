@@ -88,6 +88,10 @@ impl Agent {
     pub fn set_camera_noise(&mut self, distance_noise_rate: f64, direction_noise: f64) {
         self.camera.set_noise(distance_noise_rate, direction_noise);
     }
+    pub fn set_camera_bias(&mut self, distance_bias_rate_std: f64, direction_bias_std: f64) {
+        self.camera
+            .set_bias(&mut self.rng, distance_bias_rate_std, direction_bias_std);
+    }
     pub fn action(&mut self, dt: f64, landmarks: &[Coord]) {
         self.move_.state_transition_with_noise(
             &mut self.rng,
