@@ -1,0 +1,16 @@
+[package]
+name = "robotics"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+proconio = { version = "=0.4.5", features = ["derive"] }
+eframe = "0.19.0"
+rand = "0.8.5"
+rand_chacha = "0.3.1"
+rand_distr = "0.4.3"
+
+[features]
+local = []
