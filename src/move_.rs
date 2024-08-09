@@ -21,7 +21,7 @@ impl Move {
             noise: MoveNoise::new(&mut rng, 0.0, 0.0),
             bias: MoveBias::new(&mut rng, 0.0, 0.0),
             stuck: Stuck::new(&mut rng, f64::INFINITY, 0.0),
-            kidnap: Kidnap::new(&mut rng, 1e100, 0.0, 0.0),
+            kidnap: Kidnap::new(&mut rng, f64::INFINITY, 0.0, 0.0),
         }
     }
     pub fn set_noise(&mut self, rng: &mut ChaCha20Rng, noise_per_meter: f64, noise_std: f64) {
@@ -194,37 +194,37 @@ impl Stuck {
 #[derive(Debug)]
 pub struct Kidnap {
     pub expected_kidnap_time: f64,
-    pub kidnap_pdf: Exp<f64>,   // 誘拐されるまでの確率密度関数(指数分布)
-    pub time_until_kidnap: f64, // 誘拐されるまでの時間
-    pub kidnap_x_dist: Uniform<f64>, // 誘拐された時のx座標の確率密度関数(一様分布)
-    pub kidnap_y_dist: Uniform<f64>, // 誘拐された時のy座標の確率密度関数(一様分布)
-    pub kidnap_theta_dist: Uniform<f64>, // 誘拐された時の向きの確率密度関数(一様分布)
+    pub pdf: Exp<f64>,            // 誘拐されるまでの確率密度関数(指数分布)
+    pub time_until_kidnap: f64,   // 誘拐されるまでの時間
+    pub x_dist: Uniform<f64>,     // 誘拐された時のx座標の確率密度関数(一様分布)
+    pub y_dist: Uniform<f64>,     // 誘拐された時のy座標の確率密度関数(一様分布)
+    pub theta_dist: Uniform<f64>, // 誘拐された時の向きの確率密度関数(一様分布)
 }
 
 impl Kidnap {
     pub fn new(rng: &mut ChaCha20Rng, expected_kidnap_time: f64, width: f64, height: f64) -> Self {
-        let kidnap_range_x = -width / 2.0..=width / 2.0;
-        let kidnap_range_y = -height / 2.0..=height / 2.0;
-        let kidnap_pdf = Exp::new(1.0 / expected_kidnap_time).unwrap();
-        let kidnap_x_dist = Uniform::from(kidnap_range_x);
-        let kidnap_y_dist = Uniform::from(kidnap_range_y);
-        let kidnap_theta_dist = Uniform::from(0.0..2.0 * PI);
+        let x_range = -width / 2.0..=width / 2.0;
+        let y_range = -height / 2.0..=height / 2.0;
+        let pdf = Exp::new(1.0 / expected_kidnap_time).unwrap();
+        let x_dist = Uniform::from(x_range);
+        let y_dist = Uniform::from(y_range);
+        let theta_dist = Uniform::from(0.0..2.0 * PI);
         Self {
             expected_kidnap_time,
-            kidnap_pdf,
-            time_until_kidnap: kidnap_pdf.sample(rng),
-            kidnap_x_dist,
-            kidnap_y_dist,
-            kidnap_theta_dist,
+            pdf,
+            time_until_kidnap: pdf.sample(rng),
+            x_dist,
+            y_dist,
+            theta_dist,
         }
     }
     pub fn occur(&mut self, rng: &mut ChaCha20Rng, dt: f64, pose: &mut Pose) {
         self.time_until_kidnap -= dt;
         if self.time_until_kidnap <= 0.0 {
-            self.time_until_kidnap += self.kidnap_pdf.sample(rng);
-            pose.coord.x = self.kidnap_x_dist.sample(rng);
-            pose.coord.y = self.kidnap_y_dist.sample(rng);
-            pose.theta = self.kidnap_theta_dist.sample(rng);
+            self.time_until_kidnap += self.pdf.sample(rng);
+            pose.coord.x = self.x_dist.sample(rng);
+            pose.coord.y = self.y_dist.sample(rng);
+            pose.theta = self.theta_dist.sample(rng);
         }
     }
 }
