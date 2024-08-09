@@ -92,6 +92,9 @@ impl Agent {
         self.camera
             .set_bias(&mut self.rng, distance_bias_rate_std, direction_bias_std);
     }
+    pub fn set_camera_phantom(&mut self, prob: f64, width: f64, height: f64) {
+        self.camera.set_phantom(prob, width, height);
+    }
     pub fn action(&mut self, dt: f64, landmarks: &[Coord]) {
         self.move_.state_transition_with_noise(
             &mut self.rng,
