@@ -28,6 +28,7 @@ pub struct Camera {
     pub bias: ObservationBias,
     pub phantom: Phantom,
     pub oversight: Oversight,
+    pub occlusion: Occlusion,
 }
 
 impl Camera {
@@ -40,6 +41,7 @@ impl Camera {
             bias: ObservationBias::new(&mut rng, 0.0, 0.0),
             phantom: Phantom::new(0.0, 0.0, 0.0),
             oversight: Oversight::new(0.0),
+            occlusion: Occlusion::new(0.0),
         }
     }
     pub fn is_visible(&self, dist: &f64, angle: &f64) -> bool {
@@ -62,6 +64,9 @@ impl Camera {
     pub fn set_oversight(&mut self, prob: f64) {
         self.oversight = Oversight::new(prob);
     }
+    pub fn set_occlusion(&mut self, prob: f64) {
+        self.occlusion = Occlusion::new(prob);
+    }
     pub fn observe(
         &mut self,
         rng: &mut ChaCha20Rng,
@@ -78,6 +83,8 @@ impl Camera {
             let mut dist = (dx.powf(2.0) + dy.powf(2.0)).sqrt();
             let mut angle = dy.atan2(dx) - pose.theta;
             angle = convert_radian_in_range(angle);
+            self.occlusion
+                .occur(rng, &mut dist, Self::VIS_DISTANCE_RANGE);
             if !self.oversight.occur(rng) && self.is_visible(&dist, &angle) {
                 self.bias.on(&mut dist, &mut angle);
                 self.noise.occur(rng, &mut dist, &mut angle);
@@ -178,5 +185,21 @@ impl Oversight {
     }
     fn occur(&self, rng: &mut ChaCha20Rng) -> bool {
         rng.gen_range(0.0..=1.0) < self.prob
+    }
+}
+
+#[derive(Debug)]
+pub struct Occlusion {
+    pub prob: f64,
+}
+
+impl Occlusion {
+    fn new(prob: f64) -> Self {
+        Self { prob }
+    }
+    fn occur(&self, rng: &mut ChaCha20Rng, dist: &mut f64, dist_range: std::ops::Range<f64>) {
+        if rng.gen_range(0.0..=1.0) < self.prob {
+            *dist += rng.gen_range(0.0..=1.0) * (dist_range.end - dist_range.start);
+        }
     }
 }

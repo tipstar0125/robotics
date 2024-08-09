@@ -98,6 +98,9 @@ impl Agent {
     pub fn set_camera_oversight(&mut self, prob: f64) {
         self.camera.set_oversight(prob);
     }
+    pub fn set_camera_occlusion(&mut self, prob: f64) {
+        self.camera.set_occlusion(prob);
+    }
     pub fn action(&mut self, dt: f64, landmarks: &[Coord]) {
         self.move_.state_transition_with_noise(
             &mut self.rng,
