@@ -61,8 +61,7 @@ impl Move {
         radius: f64,
         dt: f64,
     ) {
-        nu = self.bias.bias_nu(nu);
-        omega = self.bias.bias_omega(omega);
+        self.bias.on(&mut nu, &mut omega);
         if self.stuck.occur(rng, dt) {
             nu = 0.0;
             omega = 0.0;
@@ -143,11 +142,9 @@ impl MoveBias {
             omega_bias: Normal::new(1.0, omega_bias_rate_std).unwrap().sample(rng),
         }
     }
-    pub fn bias_nu(&self, nu: f64) -> f64 {
-        nu * self.nu_bias
-    }
-    pub fn bias_omega(&self, omega: f64) -> f64 {
-        omega * self.omega_bias
+    pub fn on(&self, nu: &mut f64, omega: &mut f64) {
+        *nu *= self.nu_bias;
+        *omega *= self.omega_bias;
     }
 }
 
