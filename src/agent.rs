@@ -85,6 +85,9 @@ impl Agent {
         self.move_
             .set_kidnap(&mut self.rng, expected_kidnap_time, width, height);
     }
+    pub fn set_camera_noise(&mut self, distance_noise_rate: f64, direction_noise: f64) {
+        self.camera.set_noise(distance_noise_rate, direction_noise);
+    }
     pub fn action(&mut self, dt: f64, landmarks: &[Coord]) {
         self.move_.state_transition_with_noise(
             &mut self.rng,
@@ -96,6 +99,6 @@ impl Agent {
         );
         self.pose_records.push(self.pose);
         self.obs_records
-            .push(self.camera.observe(self.pose, landmarks));
+            .push(self.camera.observe(&mut self.rng, self.pose, landmarks));
     }
 }

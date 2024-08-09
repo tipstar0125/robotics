@@ -1,4 +1,5 @@
 use rand_chacha::ChaCha20Rng;
+use rand_distr::{Distribution, Normal};
 
 use crate::{
     agent::Pose,
@@ -36,15 +37,24 @@ impl Camera {
     pub fn is_visible(&self, dist: &f64, angle: &f64) -> bool {
         Self::VIS_DISTANCE_RANGE.contains(dist) && Self::VIS_DIRECTION_RANGE.contains(angle)
     }
-    pub fn observe(&self, pose: Pose, landmarks: &[Coord]) -> Vec<Observation> {
+    pub fn set_noise(&mut self, distance_noise_rate: f64, direction_noise: f64) {
+        self.noise = ObservationNoise::new(distance_noise_rate, direction_noise)
+    }
+    pub fn observe(
+        &self,
+        rng: &mut ChaCha20Rng,
+        pose: Pose,
+        landmarks: &[Coord],
+    ) -> Vec<Observation> {
         let mut obs = vec![];
         for mark in landmarks.iter() {
             let dx = mark.x - pose.coord.x;
             let dy = mark.y - pose.coord.y;
-            let dist = (dx.powf(2.0) + dy.powf(2.0)).sqrt();
-            let angle = dy.atan2(dx) - pose.theta;
-            let angle = convert_radian_in_range(angle);
+            let mut dist = (dx.powf(2.0) + dy.powf(2.0)).sqrt();
+            let mut angle = dy.atan2(dx) - pose.theta;
+            angle = convert_radian_in_range(angle);
             if self.is_visible(&dist, &angle) {
+                self.noise.occur(rng, &mut dist, &mut angle);
                 obs.push(Observation { dist, angle })
             }
         }
@@ -64,5 +74,13 @@ impl ObservationNoise {
             distance_noise_rate,
             direction_noise,
         }
+    }
+    pub fn occur(&self, rng: &mut ChaCha20Rng, dist: &mut f64, angle: &mut f64) {
+        *dist = Normal::new(*dist, *dist * self.distance_noise_rate)
+            .unwrap()
+            .sample(rng);
+        *angle = Normal::new(*angle, self.direction_noise)
+            .unwrap()
+            .sample(rng);
     }
 }
