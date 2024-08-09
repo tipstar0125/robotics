@@ -95,6 +95,9 @@ impl Agent {
     pub fn set_camera_phantom(&mut self, prob: f64, width: f64, height: f64) {
         self.camera.set_phantom(prob, width, height);
     }
+    pub fn set_camera_oversight(&mut self, prob: f64) {
+        self.camera.set_oversight(prob);
+    }
     pub fn action(&mut self, dt: f64, landmarks: &[Coord]) {
         self.move_.state_transition_with_noise(
             &mut self.rng,

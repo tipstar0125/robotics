@@ -27,6 +27,7 @@ pub struct Camera {
     pub noise: ObservationNoise,
     pub bias: ObservationBias,
     pub phantom: Phantom,
+    pub oversight: Oversight,
 }
 
 impl Camera {
@@ -38,6 +39,7 @@ impl Camera {
             noise: ObservationNoise::new(0.0, 0.0),
             bias: ObservationBias::new(&mut rng, 0.0, 0.0),
             phantom: Phantom::new(0.0, 0.0, 0.0),
+            oversight: Oversight::new(0.0),
         }
     }
     pub fn is_visible(&self, dist: &f64, angle: &f64) -> bool {
@@ -57,6 +59,9 @@ impl Camera {
     pub fn set_phantom(&mut self, prob: f64, width: f64, height: f64) {
         self.phantom = Phantom::new(prob, width, height);
     }
+    pub fn set_oversight(&mut self, prob: f64) {
+        self.oversight = Oversight::new(prob);
+    }
     pub fn observe(
         &mut self,
         rng: &mut ChaCha20Rng,
@@ -73,7 +78,7 @@ impl Camera {
             let mut dist = (dx.powf(2.0) + dy.powf(2.0)).sqrt();
             let mut angle = dy.atan2(dx) - pose.theta;
             angle = convert_radian_in_range(angle);
-            if self.is_visible(&dist, &angle) {
+            if !self.oversight.occur(rng) && self.is_visible(&dist, &angle) {
                 self.bias.on(&mut dist, &mut angle);
                 self.noise.occur(rng, &mut dist, &mut angle);
                 angle = convert_radian_in_range(angle);
@@ -159,5 +164,19 @@ impl Phantom {
             *x = self.x_dist.sample(rng);
             *y = self.y_dist.sample(rng);
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Oversight {
+    pub prob: f64,
+}
+
+impl Oversight {
+    fn new(prob: f64) -> Self {
+        Self { prob }
+    }
+    fn occur(&self, rng: &mut ChaCha20Rng) -> bool {
+        rng.gen_range(0.0..=1.0) < self.prob
     }
 }
