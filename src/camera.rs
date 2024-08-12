@@ -1,6 +1,6 @@
-use rand::{Rng, SeedableRng};
-use rand_chacha::ChaCha20Rng;
+use rand::prelude::*;
 use rand_distr::{Distribution, Normal, Uniform};
+use rand_pcg::Pcg64Mcg;
 
 use crate::{
     agent::Pose,
@@ -35,7 +35,7 @@ impl Camera {
     const VIS_DISTANCE_RANGE: std::ops::Range<f64> = 0.5..6.0;
     const VIS_DIRECTION_RANGE: std::ops::Range<f64> = -PI / 3.0..PI / 3.0;
     pub fn new() -> Self {
-        let mut rng = ChaCha20Rng::seed_from_u64(0);
+        let mut rng = Pcg64Mcg::seed_from_u64(0);
         Self {
             noise: ObservationNoise::new(0.0, 0.0),
             bias: ObservationBias::new(&mut rng, 0.0, 0.0),
@@ -52,7 +52,7 @@ impl Camera {
     }
     pub fn set_bias(
         &mut self,
-        rng: &mut ChaCha20Rng,
+        rng: &mut Pcg64Mcg,
         distance_bias_rate_std: f64,
         direction_bias_std: f64,
     ) {
@@ -69,7 +69,7 @@ impl Camera {
     }
     pub fn observe(
         &mut self,
-        rng: &mut ChaCha20Rng,
+        rng: &mut Pcg64Mcg,
         pose: Pose,
         landmarks: &[Coord],
     ) -> Vec<Observation> {
@@ -109,7 +109,7 @@ impl ObservationNoise {
             direction_noise,
         }
     }
-    pub fn occur(&self, rng: &mut ChaCha20Rng, dist: &mut f64, angle: &mut f64) {
+    pub fn occur(&self, rng: &mut Pcg64Mcg, dist: &mut f64, angle: &mut f64) {
         *dist = Normal::new(*dist, *dist * self.distance_noise_rate)
             .unwrap()
             .sample(rng);
@@ -128,11 +128,7 @@ pub struct ObservationBias {
 }
 
 impl ObservationBias {
-    pub fn new(
-        rng: &mut ChaCha20Rng,
-        distance_bias_rate_std: f64,
-        direction_bias_std: f64,
-    ) -> Self {
+    pub fn new(rng: &mut Pcg64Mcg, distance_bias_rate_std: f64, direction_bias_std: f64) -> Self {
         Self {
             distance_bias_rate_std,
             direction_bias_std,
@@ -166,7 +162,7 @@ impl Phantom {
             y_dist: Uniform::from(y_range),
         }
     }
-    pub fn occur(&mut self, rng: &mut ChaCha20Rng, x: &mut f64, y: &mut f64) {
+    pub fn occur(&mut self, rng: &mut Pcg64Mcg, x: &mut f64, y: &mut f64) {
         if rng.gen_range(0.0..=1.0) < self.prob {
             *x = self.x_dist.sample(rng);
             *y = self.y_dist.sample(rng);
@@ -183,7 +179,7 @@ impl Oversight {
     fn new(prob: f64) -> Self {
         Self { prob }
     }
-    fn occur(&self, rng: &mut ChaCha20Rng) -> bool {
+    fn occur(&self, rng: &mut Pcg64Mcg) -> bool {
         rng.gen_range(0.0..=1.0) < self.prob
     }
 }
@@ -197,7 +193,7 @@ impl Occlusion {
     fn new(prob: f64) -> Self {
         Self { prob }
     }
-    fn occur(&self, rng: &mut ChaCha20Rng, dist: &mut f64, dist_range: std::ops::Range<f64>) {
+    fn occur(&self, rng: &mut Pcg64Mcg, dist: &mut f64, dist_range: std::ops::Range<f64>) {
         if rng.gen_range(0.0..=1.0) < self.prob {
             *dist += rng.gen_range(0.0..=1.0) * (dist_range.end - dist_range.start);
         }

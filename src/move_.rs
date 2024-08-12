@@ -1,6 +1,6 @@
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
+use rand::prelude::*;
 use rand_distr::{Distribution, Exp, Normal, Uniform};
+use rand_pcg::Pcg64Mcg;
 
 use crate::{agent::Pose, common::Coord};
 
@@ -16,7 +16,7 @@ pub struct Move {
 
 impl Move {
     pub fn new() -> Self {
-        let mut rng = ChaCha20Rng::seed_from_u64(0);
+        let mut rng = Pcg64Mcg::seed_from_u64(0);
         Self {
             noise: MoveNoise::new(&mut rng, 0.0, 0.0),
             bias: MoveBias::new(&mut rng, 0.0, 0.0),
@@ -24,12 +24,12 @@ impl Move {
             kidnap: Kidnap::new(&mut rng, f64::INFINITY, 0.0, 0.0),
         }
     }
-    pub fn set_noise(&mut self, rng: &mut ChaCha20Rng, noise_per_meter: f64, noise_std: f64) {
+    pub fn set_noise(&mut self, rng: &mut Pcg64Mcg, noise_per_meter: f64, noise_std: f64) {
         self.noise = MoveNoise::new(rng, noise_per_meter, noise_std);
     }
     pub fn set_bias(
         &mut self,
-        rng: &mut ChaCha20Rng,
+        rng: &mut Pcg64Mcg,
         nu_bias_rate_std: f64,
         omega_bias_rate_std: f64,
     ) {
@@ -37,7 +37,7 @@ impl Move {
     }
     pub fn set_stuck(
         &mut self,
-        rng: &mut ChaCha20Rng,
+        rng: &mut Pcg64Mcg,
         expected_stuck_time: f64,
         expected_escape_time: f64,
     ) {
@@ -45,7 +45,7 @@ impl Move {
     }
     pub fn set_kidnap(
         &mut self,
-        rng: &mut ChaCha20Rng,
+        rng: &mut Pcg64Mcg,
         expected_kidnap_time: f64,
         width: f64,
         height: f64,
@@ -54,7 +54,7 @@ impl Move {
     }
     pub fn state_transition_with_noise(
         &mut self,
-        rng: &mut ChaCha20Rng,
+        rng: &mut Pcg64Mcg,
         pose: &mut Pose,
         mut nu: f64,
         mut omega: f64,
@@ -103,7 +103,7 @@ pub struct MoveNoise {
 }
 
 impl MoveNoise {
-    pub fn new(rng: &mut ChaCha20Rng, noise_per_meter: f64, noise_std: f64) -> Self {
+    pub fn new(rng: &mut Pcg64Mcg, noise_per_meter: f64, noise_std: f64) -> Self {
         let noise_pdf = Exp::new(noise_per_meter).unwrap();
         let dist_until_noise = noise_pdf.sample(rng);
         Self {
@@ -114,7 +114,7 @@ impl MoveNoise {
             dist_until_noise,
         }
     }
-    pub fn occur(&mut self, rng: &mut ChaCha20Rng, dist: f64) -> f64 {
+    pub fn occur(&mut self, rng: &mut Pcg64Mcg, dist: f64) -> f64 {
         self.dist_until_noise -= dist;
         if self.dist_until_noise <= 0.0 {
             self.dist_until_noise += self.noise_pdf.sample(rng);
@@ -134,7 +134,7 @@ pub struct MoveBias {
 }
 
 impl MoveBias {
-    pub fn new(rng: &mut ChaCha20Rng, nu_bias_rate_std: f64, omega_bias_rate_std: f64) -> Self {
+    pub fn new(rng: &mut Pcg64Mcg, nu_bias_rate_std: f64, omega_bias_rate_std: f64) -> Self {
         Self {
             nu_bias_rate_std,
             omega_bias_rate_std,
@@ -160,7 +160,7 @@ pub struct Stuck {
 }
 
 impl Stuck {
-    pub fn new(rng: &mut ChaCha20Rng, expected_stuck_time: f64, expected_escape_time: f64) -> Self {
+    pub fn new(rng: &mut Pcg64Mcg, expected_stuck_time: f64, expected_escape_time: f64) -> Self {
         let stuck_pdf = Exp::new(1.0 / expected_stuck_time).unwrap();
         let escape_pdf = Exp::new(1.0 / expected_escape_time).unwrap();
         Self {
@@ -173,7 +173,7 @@ impl Stuck {
             is_stuck: false,
         }
     }
-    pub fn occur(&mut self, rng: &mut ChaCha20Rng, dt: f64) -> bool {
+    pub fn occur(&mut self, rng: &mut Pcg64Mcg, dt: f64) -> bool {
         if self.is_stuck {
             self.time_until_escape -= dt;
             if self.time_until_escape <= 0.0 {
@@ -202,7 +202,7 @@ pub struct Kidnap {
 }
 
 impl Kidnap {
-    pub fn new(rng: &mut ChaCha20Rng, expected_kidnap_time: f64, width: f64, height: f64) -> Self {
+    pub fn new(rng: &mut Pcg64Mcg, expected_kidnap_time: f64, width: f64, height: f64) -> Self {
         let x_range = -width / 2.0..=width / 2.0;
         let y_range = -height / 2.0..=height / 2.0;
         let pdf = Exp::new(1.0 / expected_kidnap_time).unwrap();
@@ -218,7 +218,7 @@ impl Kidnap {
             theta_dist,
         }
     }
-    pub fn occur(&mut self, rng: &mut ChaCha20Rng, dt: f64, pose: &mut Pose) {
+    pub fn occur(&mut self, rng: &mut Pcg64Mcg, dt: f64, pose: &mut Pose) {
         self.time_until_kidnap -= dt;
         if self.time_until_kidnap <= 0.0 {
             self.time_until_kidnap += self.pdf.sample(rng);

@@ -4,9 +4,9 @@ use crate::{
     move_::Move,
 };
 
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
+use rand::prelude::*;
 use rand_distr::{Distribution, Exp, Normal, Uniform};
+use rand_pcg::Pcg64Mcg;
 
 const PI: f64 = std::f64::consts::PI;
 
@@ -49,7 +49,7 @@ pub struct Agent {
     pub omega: f64, // ロボットの中心の角速度
     pub move_: Move,
     pub camera: Camera,
-    pub rng: ChaCha20Rng,
+    pub rng: Pcg64Mcg,
     pub obs_records: Vec<Vec<Observation>>,
     pub pose_records: Vec<Pose>,
 }
@@ -64,7 +64,7 @@ impl Agent {
             omega,
             move_: Move::new(),
             camera: Camera::new(),
-            rng: ChaCha20Rng::seed_from_u64(id),
+            rng: Pcg64Mcg::seed_from_u64(id),
             obs_records: vec![vec![]],
             pose_records: vec![pose],
         }
