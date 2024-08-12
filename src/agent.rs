@@ -3,12 +3,10 @@ use crate::{
     common::{convert_radian_in_range, Coord},
     move_::Move,
 };
-
 use rand::prelude::*;
 use rand_distr::{Distribution, Exp, Normal, Uniform};
 use rand_pcg::Pcg64Mcg;
-
-const PI: f64 = std::f64::consts::PI;
+use std::f64::consts::PI;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Pose {

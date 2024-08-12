@@ -1,13 +1,11 @@
-use rand::prelude::*;
-use rand_distr::{Distribution, Normal, Uniform};
-use rand_pcg::Pcg64Mcg;
-
 use crate::{
     agent::Pose,
     common::{convert_radian_in_range, Coord},
 };
-
-const PI: f64 = std::f64::consts::PI;
+use rand::prelude::*;
+use rand_distr::{Distribution, Normal, Uniform};
+use rand_pcg::Pcg64Mcg;
+use std::f64::consts::PI;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Observation {

@@ -1,10 +1,8 @@
+use crate::{agent::Pose, common::Coord};
 use rand::prelude::*;
 use rand_distr::{Distribution, Exp, Normal, Uniform};
 use rand_pcg::Pcg64Mcg;
-
-use crate::{agent::Pose, common::Coord};
-
-const PI: f64 = std::f64::consts::PI;
+use std::f64::consts::PI;
 
 #[derive(Debug)]
 pub struct Move {
