@@ -1,8 +1,8 @@
-use crate::{convert_radian_in_range, Agent, Coord, Input, Output};
+use crate::{convert_radian_in_range, Agent, Coord, Estimator, Input, Output};
 
 use eframe::egui::{
     show_tooltip_at_pointer, widgets, Align2, CentralPanel, Color32, Context, FontFamily, FontId,
-    Id, Key, Pos2, Rect, RichText, Slider, Stroke, TextEdit, Ui,
+    Id, Key, Pos2, Rect, RichText, Slider, Stroke, TextEdit, Ui, Vec2,
 };
 use eframe::{run_native, App, CreationContext, Frame, NativeOptions, Storage, Theme};
 use std::time::{Duration, Instant};
@@ -72,6 +72,7 @@ impl App for Egui {
             for (idx, agent) in self.output.agents.iter().enumerate() {
                 view_agent(ui, &self.input, d, agent, self.turn, AGENT_COLORS[idx]);
             }
+            view_estimator(ui, &self.input, d, &self.output.estimator);
 
             ui.horizontal(|ui| {
                 ui.label(RichText::new("Turn: ").size(20.0));
@@ -200,7 +201,15 @@ pub fn circle(
         },
     }
 }
-
+pub fn arrow(ui: &mut Ui, mut origin: Pos2, vec: Vec2, stroke_color: Color32, stroke_width: f32) {
+    origin.x += OFFSET_WIDTH;
+    origin.y += OFFSET_HEIGHT;
+    let stroke = Stroke {
+        width: stroke_width,
+        color: stroke_color,
+    };
+    ui.painter().arrow(origin, vec, stroke);
+}
 pub fn view_world(ui: &mut Ui, input: &Input, d: f32) {
     let view_top_left_pos = Pos2 { x: 0.0, y: 0.0 };
     let view_bottom_right_pos = Pos2 {
@@ -403,5 +412,21 @@ pub fn view_landmark(ui: &mut Ui, input: &Input, d: f32, id: usize, coord: Coord
                 ));
             });
         }
+    }
+}
+pub fn view_estimator(ui: &mut Ui, input: &Input, d: f32, estimator: &Estimator) {
+    let x_center = d * input.width as f32 / 2.0;
+    let y_center = d * input.height as f32 / 2.0;
+    let radius = estimator.radius as f32 * d;
+    for particle in estimator.particles.iter() {
+        let origin = Pos2 {
+            x: x_center + d * particle.pose.coord.x as f32,
+            y: y_center + d * (-particle.pose.coord.y) as f32,
+        };
+        let vec = Vec2 {
+            x: radius * particle.pose.theta.cos() as f32,
+            y: -radius * particle.pose.theta.sin() as f32,
+        };
+        arrow(ui, origin, vec, Color32::BLUE, 2.0);
     }
 }
