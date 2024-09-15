@@ -1,4 +1,4 @@
-use crate::{convert_radian_in_range, Agent, Coord, Estimator, Input, Output};
+use crate::{convert_radian_in_range, Agent, Coord, Estimator, Input, Output, Pose};
 
 use eframe::egui::{
     show_tooltip_at_pointer, widgets, Align2, CentralPanel, Color32, Context, FontFamily, FontId,
@@ -69,10 +69,12 @@ impl App for Egui {
             for (id, &coord) in self.input.landmarks.iter().enumerate() {
                 view_landmark(ui, &self.input, d, id, coord);
             }
+
+            view_estimator(ui, &self.input, d, &self.output.estimator, self.turn);
+
             for (idx, agent) in self.output.agents.iter().enumerate() {
                 view_agent(ui, &self.input, d, agent, self.turn, AGENT_COLORS[idx]);
             }
-            view_estimator(ui, &self.input, d, &self.output.estimator);
 
             ui.horizontal(|ui| {
                 ui.label(RichText::new("Turn: ").size(20.0));
@@ -414,19 +416,20 @@ pub fn view_landmark(ui: &mut Ui, input: &Input, d: f32, id: usize, coord: Coord
         }
     }
 }
-pub fn view_estimator(ui: &mut Ui, input: &Input, d: f32, estimator: &Estimator) {
+pub fn view_estimator(ui: &mut Ui, input: &Input, d: f32, estimator: &Estimator, turn: usize) {
     let x_center = d * input.width as f32 / 2.0;
     let y_center = d * input.height as f32 / 2.0;
-    let radius = estimator.radius as f32 * d;
-    for particle in estimator.particles.iter() {
+    let size = estimator.radius as f32 * d;
+    for pose in estimator.pose_records[turn].iter() {
         let origin = Pos2 {
-            x: x_center + d * particle.pose.coord.x as f32,
-            y: y_center + d * (-particle.pose.coord.y) as f32,
+            x: x_center + d * pose.coord.x as f32,
+            y: y_center + d * (-pose.coord.y) as f32,
         };
         let vec = Vec2 {
-            x: radius * particle.pose.theta.cos() as f32,
-            y: -radius * particle.pose.theta.sin() as f32,
+            x: size * pose.theta.cos() as f32,
+            y: -size * pose.theta.sin() as f32,
         };
-        arrow(ui, origin, vec, Color32::BLUE, 2.0);
+        let color = Color32::from_rgba_unmultiplied(0, 0, 255, 150);
+        arrow(ui, origin, vec, color, 2.0);
     }
 }
