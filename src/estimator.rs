@@ -1,6 +1,6 @@
 use crate::agent::Pose;
 use crate::common::Coord;
-use crate::move_::state_transition;
+use crate::motion::state_transition;
 use crate::multivariate_normal::MyMultivariateNormal;
 
 #[derive(Debug, Clone, Copy)]

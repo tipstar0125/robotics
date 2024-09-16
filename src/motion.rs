@@ -5,25 +5,25 @@ use rand_pcg::Pcg64Mcg;
 use std::f64::consts::PI;
 
 #[derive(Debug)]
-pub struct Move {
-    pub noise: MoveNoise,
-    pub bias: MoveBias,
+pub struct Motion {
+    pub noise: MotionNoise,
+    pub bias: MotionBias,
     pub stuck: Stuck,
     pub kidnap: Kidnap,
 }
 
-impl Move {
+impl Motion {
     pub fn new() -> Self {
         let mut rng = Pcg64Mcg::seed_from_u64(0);
         Self {
-            noise: MoveNoise::new(&mut rng, 0.0, 0.0),
-            bias: MoveBias::new(&mut rng, 0.0, 0.0),
+            noise: MotionNoise::new(&mut rng, 0.0, 0.0),
+            bias: MotionBias::new(&mut rng, 0.0, 0.0),
             stuck: Stuck::new(&mut rng, f64::INFINITY, 0.0),
             kidnap: Kidnap::new(&mut rng, f64::INFINITY, 0.0, 0.0),
         }
     }
     pub fn set_noise(&mut self, rng: &mut Pcg64Mcg, noise_per_meter: f64, noise_std: f64) {
-        self.noise = MoveNoise::new(rng, noise_per_meter, noise_std);
+        self.noise = MotionNoise::new(rng, noise_per_meter, noise_std);
     }
     pub fn set_bias(
         &mut self,
@@ -31,7 +31,7 @@ impl Move {
         nu_bias_rate_std: f64,
         omega_bias_rate_std: f64,
     ) {
-        self.bias = MoveBias::new(rng, nu_bias_rate_std, omega_bias_rate_std);
+        self.bias = MotionBias::new(rng, nu_bias_rate_std, omega_bias_rate_std);
     }
     pub fn set_stuck(
         &mut self,
@@ -92,7 +92,7 @@ pub fn state_transition(pose: Pose, nu: f64, omega: f64, dt: f64) -> Pose {
 }
 
 #[derive(Debug)]
-pub struct MoveNoise {
+pub struct MotionNoise {
     noise_per_meter: f64,     // 道のりあたりに踏みつける小石の期待値
     noise_std: f64,           // ロボットが小石を踏んだときにずれる向きの標準偏差
     noise_pdf: Exp<f64>,      // 小石を踏む確率密度関数(指数分布)
@@ -100,7 +100,7 @@ pub struct MoveNoise {
     dist_until_noise: f64,    // 小石を踏むまでの距離
 }
 
-impl MoveNoise {
+impl MotionNoise {
     pub fn new(rng: &mut Pcg64Mcg, noise_per_meter: f64, noise_std: f64) -> Self {
         let noise_pdf = Exp::new(noise_per_meter).unwrap();
         let dist_until_noise = noise_pdf.sample(rng);
@@ -124,14 +124,14 @@ impl MoveNoise {
 }
 
 #[derive(Debug)]
-pub struct MoveBias {
+pub struct MotionBias {
     pub nu_bias_rate_std: f64,
     pub omega_bias_rate_std: f64,
     pub nu_bias: f64,
     pub omega_bias: f64,
 }
 
-impl MoveBias {
+impl MotionBias {
     pub fn new(rng: &mut Pcg64Mcg, nu_bias_rate_std: f64, omega_bias_rate_std: f64) -> Self {
         Self {
             nu_bias_rate_std,

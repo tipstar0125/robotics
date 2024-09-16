@@ -1,7 +1,7 @@
 use crate::{
     camera::{Camera, Observation},
     common::{convert_radian_in_range, Coord},
-    move_::Move,
+    motion::Motion,
 };
 use rand::prelude::*;
 use rand_distr::{Distribution, Exp, Normal, Uniform};
@@ -45,7 +45,7 @@ pub struct Agent {
     pub pose: Pose,
     pub nu: f64,    // ロボットの前方方向の速度
     pub omega: f64, // ロボットの中心の角速度
-    pub move_: Move,
+    pub motion: Motion,
     pub camera: Camera,
     pub rng: Pcg64Mcg,
     pub obs_records: Vec<Vec<Observation>>,
@@ -60,27 +60,27 @@ impl Agent {
             pose,
             nu,
             omega,
-            move_: Move::new(),
+            motion: Motion::new(),
             camera: Camera::new(),
             rng: Pcg64Mcg::seed_from_u64(id),
             obs_records: vec![vec![]],
             pose_records: vec![pose],
         }
     }
-    pub fn set_move_noise(&mut self, noise_per_meter: f64, noise_std: f64) {
-        self.move_
+    pub fn set_motion_noise(&mut self, noise_per_meter: f64, noise_std: f64) {
+        self.motion
             .set_noise(&mut self.rng, noise_per_meter, noise_std);
     }
-    pub fn set_move_bias(&mut self, nu_bias_rate_std: f64, omega_bias_rate_std: f64) {
-        self.move_
+    pub fn set_motion_bias(&mut self, nu_bias_rate_std: f64, omega_bias_rate_std: f64) {
+        self.motion
             .set_bias(&mut self.rng, nu_bias_rate_std, omega_bias_rate_std);
     }
     pub fn set_stuck(&mut self, expected_stuck_time: f64, expected_escape_time: f64) {
-        self.move_
+        self.motion
             .set_stuck(&mut self.rng, expected_stuck_time, expected_escape_time);
     }
     pub fn set_kidnap(&mut self, expected_kidnap_time: f64, width: f64, height: f64) {
-        self.move_
+        self.motion
             .set_kidnap(&mut self.rng, expected_kidnap_time, width, height);
     }
     pub fn set_camera_noise(&mut self, distance_noise_rate: f64, direction_noise: f64) {
@@ -100,7 +100,7 @@ impl Agent {
         self.camera.set_occlusion(prob);
     }
     pub fn action(&mut self, dt: f64, landmarks: &[Coord]) {
-        self.move_.state_transition_with_noise(
+        self.motion.state_transition_with_noise(
             &mut self.rng,
             &mut self.pose,
             self.nu,
