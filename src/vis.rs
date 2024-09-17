@@ -420,7 +420,11 @@ pub fn view_estimator(ui: &mut Ui, input: &Input, d: f32, estimator: &Estimator,
     let x_center = d * input.width as f32 / 2.0;
     let y_center = d * input.height as f32 / 2.0;
     let size = estimator.radius as f32 * d;
-    for pose in estimator.pose_records[turn].iter() {
+
+    for (pose, &weight) in estimator.pose_records[turn]
+        .iter()
+        .zip(estimator.weight_records[turn].iter())
+    {
         let origin = Pos2 {
             x: x_center + d * pose.coord.x as f32,
             y: y_center + d * (-pose.coord.y) as f32,
@@ -429,7 +433,8 @@ pub fn view_estimator(ui: &mut Ui, input: &Input, d: f32, estimator: &Estimator,
             x: size * pose.theta.cos() as f32,
             y: -size * pose.theta.sin() as f32,
         };
-        let color = Color32::from_rgba_unmultiplied(0, 0, 255, 150);
+        let opacity = ((weight * 255.0) as u8).min(255);
+        let color = Color32::from_rgba_unmultiplied(0, 0, 255, opacity);
         arrow(ui, origin, vec, color, 2.0);
     }
 }

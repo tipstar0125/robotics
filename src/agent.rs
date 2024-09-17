@@ -99,7 +99,7 @@ impl Agent {
     pub fn set_camera_occlusion(&mut self, prob: f64) {
         self.camera.set_occlusion(prob);
     }
-    pub fn action(&mut self, dt: f64, landmarks: &[Coord]) {
+    pub fn action(&mut self, dt: f64, landmarks: &[Coord]) -> Vec<Observation> {
         self.motion.state_transition_with_noise(
             &mut self.rng,
             &mut self.pose,
@@ -109,7 +109,8 @@ impl Agent {
             dt,
         );
         self.pose_records.push(self.pose);
-        self.obs_records
-            .push(self.camera.observe(&mut self.rng, self.pose, landmarks));
+        let obs = self.camera.observe(&mut self.rng, self.pose, landmarks);
+        self.obs_records.push(obs.clone());
+        obs
     }
 }

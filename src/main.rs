@@ -11,17 +11,23 @@
 mod agent;
 mod camera;
 mod common;
-mod move_;
+mod estimator;
+mod motion;
+mod multivariate_normal;
+mod plot;
 mod vis;
+
 use agent::{Agent, Pose};
 use common::{convert_radian_in_range, Coord};
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
-
 use eframe::egui::Color32;
+use estimator::{Estimator, MotionNoisePdf, ObservationNoiseStd};
+use multivariate_normal::MyMultivariateNormal;
+use plot::scatter;
 use proconio::input;
-
-const PI: f64 = std::f64::consts::PI;
+use rand::{distributions::WeightedIndex, SeedableRng};
+use rand_distr::Distribution;
+use rand_pcg::Pcg64Mcg;
+use std::f64::consts::PI;
 
 fn main() {
     let input = Input {
@@ -30,37 +36,55 @@ fn main() {
         height: 10,
         width: 10,
         landmarks: vec![
-            Coord { x: 1.0, y: 1.0 },
-            Coord { x: 3.0, y: 2.0 },
-            Coord { x: -3.0, y: -2.0 },
+            Coord { x: -4.0, y: 2.0 },
+            Coord { x: 2.0, y: -3.0 },
+            Coord { x: 3.0, y: 3.0 },
         ],
     };
 
     let max_turn = (input.time_span / input.time_interval) as usize;
-    let mut agents = vec![];
 
-    for i in 0..4 {
-        let mut agent = Agent::new(
-            i,   // id
-            0.2, // radius
-            Pose {
-                coord: Coord { x: 0.0, y: 0.0 },
-                theta: 0.0,
-            },
-            0.2,                   // nu
-            10.0_f64.to_radians(), // omega
-        );
-        agent.set_move_noise(5.0, 3.0_f64.to_radians());
-        // agent.set_move_bias(0.1, 0.1);
-        // agent.set_stuck(60.0, 60.0);
-        // agent.set_kidnap(5.0, input.width as f64, input.height as f64);
+    let init_pose = Pose {
+        coord: Coord { x: 0.0, y: 0.0 },
+        theta: 0.0,
+    };
+    let nu = 0.2;
+    let omega = 10.0_f64.to_radians();
+    let radius = 0.2;
 
-        for _ in 0..=max_turn {
-            agent.action(input.time_interval, &input.landmarks);
-        }
-        agents.push(agent);
+    let mut agent = Agent::new(
+        0, // id
+        radius, init_pose, nu, omega,
+    );
+    agent.set_motion_noise(5.0, PI / 60.0);
+    agent.set_motion_bias(0.1, 0.1);
+    agent.set_camera_noise(0.1, PI / 90.0);
+    agent.set_camera_bias(0.1, PI / 90.0);
+
+    let particle_num = 100;
+    let mut estimator = Estimator::new(
+        nu,
+        omega,
+        input.time_interval,
+        radius,
+        init_pose,
+        particle_num,
+        MotionNoisePdf::new(0.19, 0.001, 0.13, 0.2),
+        ObservationNoiseStd {
+            distance_rate_std: 0.14,
+            direction_std: 0.05,
+        },
+    );
+
+    for turn in 0..max_turn {
+        let obs = agent.action(input.time_interval, &input.landmarks);
+        estimator.decision(&obs, &input.landmarks);
     }
-    let output = Output { agents };
+
+    let output = Output {
+        agents: vec![agent],
+        estimator,
+    };
     vis::visualizer(input, output, max_turn);
 }
 
@@ -74,4 +98,5 @@ pub struct Input {
 
 pub struct Output {
     agents: Vec<Agent>,
+    estimator: Estimator,
 }

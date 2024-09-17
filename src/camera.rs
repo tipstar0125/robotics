@@ -9,6 +9,7 @@ use std::f64::consts::PI;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Observation {
+    pub id: usize,
     pub dist: f64,
     pub angle: f64,
 }
@@ -72,26 +73,34 @@ impl Camera {
         landmarks: &[Coord],
     ) -> Vec<Observation> {
         let mut obs = vec![];
-        for mark in landmarks.iter() {
+        for (id, mark) in landmarks.iter().enumerate() {
             let mut mark_x = mark.x;
             let mut mark_y = mark.y;
             self.phantom.occur(rng, &mut mark_x, &mut mark_y);
-            let dx = mark_x - pose.coord.x;
-            let dy = mark_y - pose.coord.y;
-            let mut dist = (dx.powf(2.0) + dy.powf(2.0)).sqrt();
-            let mut angle = dy.atan2(dx) - pose.theta;
-            angle = convert_radian_in_range(angle);
+            let mark_may_phantom = Coord::new(mark_x, mark_y);
+            let observation = observe_landmark(&pose, &mark_may_phantom, id);
+            let mut dist = observation.dist;
+            let mut angle = observation.angle;
             self.occlusion
                 .occur(rng, &mut dist, Self::VIS_DISTANCE_RANGE);
             if !self.oversight.occur(rng) && self.is_visible(&dist, &angle) {
                 self.bias.on(&mut dist, &mut angle);
                 self.noise.occur(rng, &mut dist, &mut angle);
                 angle = convert_radian_in_range(angle);
-                obs.push(Observation { dist, angle })
+                obs.push(Observation {id, dist, angle })
             }
         }
         obs
     }
+}
+
+pub fn observe_landmark(pose: &Pose, mark: &Coord, id: usize) -> Observation {
+    let dx = mark.x - pose.coord.x;
+    let dy = mark.y - pose.coord.y;
+    let dist = (dx.powf(2.0) + dy.powf(2.0)).sqrt();
+    let mut angle = dy.atan2(dx) - pose.theta;
+    angle = convert_radian_in_range(angle);
+    Observation { id, dist, angle }
 }
 
 #[derive(Debug)]

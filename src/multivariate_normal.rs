@@ -14,11 +14,10 @@ pub struct MyMultivariateNormal {
 }
 
 impl MyMultivariateNormal {
-    pub fn new(mu_vec: Vec<f64>, std_vec: Vec<f64>) -> Self {
-        assert!(mu_vec.len() * mu_vec.len() == std_vec.len());
+    pub fn new(mu_vec: Vec<f64>, sig_vec: Vec<f64>) -> Self {
+        assert!(mu_vec.len() * mu_vec.len() == sig_vec.len());
         let n = mu_vec.len();
-        let std2: Vec<_> = std_vec.iter().map(|x| x.powf(2.0)).collect();
-        let sig = DMatrix::from_row_slice(mu_vec.len(), 2, &std_vec);
+        let sig = DMatrix::from_row_slice(mu_vec.len(), 2, &sig_vec);
         let mvn =
             MultivariateNormal::from_mean_and_covariance(&DVector::from_row_slice(&mu_vec), &sig)
                 .unwrap();
