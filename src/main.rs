@@ -76,7 +76,7 @@ fn main() {
         },
     );
 
-    for turn in 0..max_turn {
+    for _ in 0..max_turn {
         let obs = agent.action(input.time_interval, &input.landmarks);
         estimator.decision(&obs, &input.landmarks);
     }

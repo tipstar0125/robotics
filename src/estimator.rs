@@ -174,8 +174,13 @@ impl Estimator {
         let weights: Vec<_> = self.particles.iter().map(|x| x.weight).collect();
         let weight_choice = WeightedIndex::new(weights).unwrap();
         let particles: Vec<_> = (0..self.particles.len())
-            .map(|_| self.particles[weight_choice.sample(&mut self.rng)])
+            .map(|_| {
+                let mut x = self.particles[weight_choice.sample(&mut self.rng)];
+                x.weight = 1.0 / self.particles.len() as f64;
+                x
+            })
             .collect();
+
         self.particles = particles;
     }
     pub fn decision(&mut self, observation: &Vec<Observation>, landmarks: &[Coord]) {

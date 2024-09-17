@@ -433,8 +433,7 @@ pub fn view_estimator(ui: &mut Ui, input: &Input, d: f32, estimator: &Estimator,
             x: size * pose.theta.cos() as f32,
             y: -size * pose.theta.sin() as f32,
         };
-        let opacity = ((weight * 255.0) as u8).min(255);
-        let color = Color32::from_rgba_unmultiplied(0, 0, 255, opacity);
+        let color = Color32::from_rgba_unmultiplied(0, 0, 255, 255);
         arrow(ui, origin, vec, color, 2.0);
     }
 }
