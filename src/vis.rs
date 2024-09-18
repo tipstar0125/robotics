@@ -421,10 +421,7 @@ pub fn view_estimator(ui: &mut Ui, input: &Input, d: f32, estimator: &Estimator,
     let y_center = d * input.height as f32 / 2.0;
     let size = estimator.radius as f32 * d;
 
-    for (pose, &weight) in estimator.pose_records[turn]
-        .iter()
-        .zip(estimator.weight_records[turn].iter())
-    {
+    for pose in estimator.pose_records[turn].iter() {
         let origin = Pos2 {
             x: x_center + d * pose.coord.x as f32,
             y: y_center + d * (-pose.coord.y) as f32,

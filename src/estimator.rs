@@ -1,5 +1,5 @@
 use rand::distributions::WeightedIndex;
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use rand_distr::Distribution;
 use rand_pcg::Pcg64Mcg;
 
@@ -183,11 +183,37 @@ impl Estimator {
 
         self.particles = particles;
     }
+    pub fn systematic_sampling(&mut self) {
+        let mut ws = vec![];
+        let mut s = 0.0;
+        self.particles.iter().for_each(|particle| {
+            s += particle.weight;
+            ws.push(s);
+        });
+        if s < 1e-100 {
+            ws = ws.iter().map(|x| x + 1e-100).collect();
+            s += 1e-100;
+        }
+        let step = s / self.particles.len() as f64;
+        let mut r = self.rng.gen_range(0.0..step);
+        let mut pos = 0;
+        let mut particle = vec![];
+        while particle.len() < self.particles.len() {
+            if r < ws[pos] {
+                self.particles[pos].weight = 1.0 / self.particles.len() as f64;
+                particle.push(self.particles[pos]);
+                r += step;
+            } else {
+                pos += 1;
+            }
+        }
+        self.particles = particle;
+    }
     pub fn decision(&mut self, observation: &Vec<Observation>, landmarks: &[Coord]) {
         self.update_motion(self.prev_nu, self.prev_omega);
         self.prev_nu = self.nu;
         self.prev_omega = self.omega;
         self.updater_observation(observation, landmarks);
-        self.resampling();
+        self.systematic_sampling();
     }
 }
