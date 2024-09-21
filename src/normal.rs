@@ -43,6 +43,7 @@ fn box_muller(rng: &mut Pcg64Mcg, mu: f64, std: f64) -> (f64, f64) {
 
 fn normal_pdf(x: f64, mu: f64, std: f64) -> f64 {
     let v = (x - mu) / std;
-    // (-0.5 * v * v).exp()
-    (-0.5 * v * v).exp() / ((2.0 * PI).sqrt() * std)
+    // 正確には以下だが、高速化のため省略
+    // (-0.5 * v * v).exp() / ((2.0 * PI).sqrt() * std)
+    (-0.5 * v * v).exp()
 }
