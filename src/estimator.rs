@@ -87,6 +87,7 @@ impl ObservationNoisePdf {
 
 #[derive(Debug)]
 pub struct Estimator {
+    pub rng: Pcg64Mcg,
     pub time_interval: f64,
     pub radius: f64,
     pub nu: f64,
@@ -97,8 +98,6 @@ pub struct Estimator {
     pub motion_noise_pdf: MotionNoisePdf,
     pub observation_noise_std: ObservationNoiseStd,
     pub pose_records: Vec<Vec<Pose>>,
-    pub weight_records: Vec<Vec<f64>>,
-    pub rng: Pcg64Mcg,
 }
 
 impl Estimator {
@@ -113,6 +112,7 @@ impl Estimator {
         observation_noise_std: ObservationNoiseStd,
     ) -> Self {
         Self {
+            rng: Pcg64Mcg::seed_from_u64(0),
             time_interval,
             radius,
             nu,
@@ -123,8 +123,6 @@ impl Estimator {
             motion_noise_pdf,
             observation_noise_std,
             pose_records: vec![vec![init_pose; particle_num]],
-            weight_records: vec![vec![1.0_f64 / particle_num as f64; particle_num]],
-            rng: Pcg64Mcg::seed_from_u64(0),
         }
     }
     pub fn update_motion(&mut self, prev_nu: f64, prev_omega: f64) {
@@ -148,7 +146,6 @@ impl Estimator {
         self.pose_records.push(poses);
     }
     pub fn updater_observation(&mut self, observation: &Vec<Observation>, landmarks: &[Coord]) {
-        let mut weights = vec![];
         for particle in self.particles.iter_mut() {
             for obs in observation.iter() {
                 let mark = landmarks[obs.id];
@@ -160,9 +157,7 @@ impl Estimator {
                 );
                 particle.weight *= pdf.possibility(vec![obs.dist, obs.angle]);
             }
-            weights.push(particle.weight);
         }
-        self.weight_records.push(weights);
     }
     // 系統サンプリング
     pub fn resampling(&mut self) {
