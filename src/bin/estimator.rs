@@ -62,6 +62,7 @@ pub struct Estimator {
     pub distance_rate_std: f64,
     pub direction_std: f64,
     pub pose_records: Vec<Vec<Pose>>,
+    pub best_weight_records: Vec<usize>,
 }
 
 impl Estimator {
@@ -84,11 +85,12 @@ impl Estimator {
             omega,
             prev_nu: 0.0,
             prev_omega: 0.0,
-            particles: vec![Particle::new(init_pose, 1.0_f64 / particle_num as f64); particle_num],
+            particles: vec![Particle::new(init_pose, 1.0); particle_num],
             motion_noise_pdf,
             distance_rate_std,
             direction_std,
             pose_records: vec![vec![init_pose; particle_num]],
+            best_weight_records: vec![0],
         }
     }
     pub fn update_motion(&mut self, prev_nu: f64, prev_omega: f64) {
@@ -115,8 +117,7 @@ impl Estimator {
                 let obs_particle = observe_landmark(&particle.pose, &mark, obs.id);
                 let distance_std = self.distance_rate_std * obs_particle.dist;
                 let distance_normal = Normal::new(obs_particle.dist, distance_std);
-                let direction_normal =
-                    Normal::new(obs_particle.angle, self.direction_std);
+                let direction_normal = Normal::new(obs_particle.angle, self.direction_std);
                 particle.weight *= distance_normal.pdf(obs.dist);
                 particle.weight *= direction_normal.pdf(obs.angle);
             }
@@ -138,9 +139,15 @@ impl Estimator {
         let mut r = self.rng.gen_range(0.0..step);
         let mut pos = 0;
         let mut particle = vec![];
+        let mut best_particle_idx = 0;
+        let mut best_weight = std::f64::MIN;
         while particle.len() < self.particles.len() {
             if r < ws[pos] {
-                self.particles[pos].weight = 1.0 / self.particles.len() as f64;
+                if best_weight < self.particles[pos].weight {
+                    best_weight = self.particles[pos].weight;
+                    best_particle_idx = particle.len();
+                }
+                self.particles[pos].weight = 1.0;
                 particle.push(self.particles[pos]);
                 r += step;
             } else {
@@ -148,6 +155,7 @@ impl Estimator {
             }
         }
         self.particles = particle;
+        self.best_weight_records.push(best_particle_idx);
     }
     pub fn decision(&mut self, observation: &Vec<Observation>, landmarks: &[Coord]) {
         self.update_motion(self.prev_nu, self.prev_omega);

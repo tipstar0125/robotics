@@ -431,4 +431,15 @@ pub fn view_estimator(ui: &mut Ui, input: &Input, d: f32, estimator: &Estimator,
         };
         arrow(ui, origin, vec, Color32::BLUE, 2.0);
     }
+
+    let best_pose = estimator.pose_records[turn][estimator.best_weight_records[turn]];
+    let origin = Pos2 {
+        x: x_center + d * best_pose.coord.x as f32,
+        y: y_center + d * (-best_pose.coord.y) as f32,
+    };
+    let vec = Vec2 {
+        x: size * best_pose.theta.cos() as f32,
+        y: -size * best_pose.theta.sin() as f32,
+    };
+    arrow(ui, origin, vec, Color32::GREEN, 2.0);
 }
