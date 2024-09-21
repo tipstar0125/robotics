@@ -39,19 +39,13 @@ impl MotionNoisePdf {
             oo_pdf: Normal::new(0.0, oo),
         }
     }
-    pub fn sample(&mut self, rng: &mut Pcg64Mcg) -> Vec<f64> {
+    pub fn sample(&mut self, rng: &mut Pcg64Mcg) -> (f64, f64, f64, f64) {
         let nn_noise = self.nn_pdf.sample(rng);
         let no_noise = self.no_pdf.sample(rng);
         let on_noise = self.on_pdf.sample(rng);
         let oo_noise = self.oo_pdf.sample(rng);
-        vec![nn_noise, no_noise, on_noise, oo_noise]
+        (nn_noise, no_noise, on_noise, oo_noise)
     }
-}
-
-#[derive(Debug)]
-pub struct ObservationNoiseStd {
-    pub distance_rate_std: f64,
-    pub direction_std: f64,
 }
 
 #[derive(Debug)]
@@ -65,7 +59,8 @@ pub struct Estimator {
     pub prev_omega: f64,
     pub particles: Vec<Particle>,
     pub motion_noise_pdf: MotionNoisePdf,
-    pub observation_noise_std: ObservationNoiseStd,
+    pub distance_rate_std: f64,
+    pub direction_std: f64,
     pub pose_records: Vec<Vec<Pose>>,
 }
 
@@ -78,7 +73,8 @@ impl Estimator {
         omega: f64,
         particle_num: usize,
         motion_noise_pdf: MotionNoisePdf,
-        observation_noise_std: ObservationNoiseStd,
+        distance_rate_std: f64,
+        direction_std: f64,
     ) -> Self {
         Self {
             rng: Pcg64Mcg::seed_from_u64(0),
@@ -90,18 +86,16 @@ impl Estimator {
             prev_omega: 0.0,
             particles: vec![Particle::new(init_pose, 1.0_f64 / particle_num as f64); particle_num],
             motion_noise_pdf,
-            observation_noise_std,
+            distance_rate_std,
+            direction_std,
             pose_records: vec![vec![init_pose; particle_num]],
         }
     }
     pub fn update_motion(&mut self, prev_nu: f64, prev_omega: f64) {
         let mut poses = vec![];
         for particle in self.particles.iter_mut() {
-            let ns = self.motion_noise_pdf.sample(&mut self.rng);
-            let nn_noise = ns[0];
-            let no_noise = ns[1];
-            let on_noise = ns[2];
-            let oo_noise = ns[3];
+            let (nn_noise, no_noise, on_noise, oo_noise) =
+                self.motion_noise_pdf.sample(&mut self.rng);
             let noised_nu = prev_nu
                 + nn_noise * (prev_nu.abs() / self.time_interval).sqrt()
                 + no_noise * (prev_omega.abs() / self.time_interval);
@@ -119,10 +113,10 @@ impl Estimator {
             for obs in observation.iter() {
                 let mark = landmarks[obs.id];
                 let obs_particle = observe_landmark(&particle.pose, &mark, obs.id);
-                let distance_std = self.observation_noise_std.distance_rate_std * obs_particle.dist;
+                let distance_std = self.distance_rate_std * obs_particle.dist;
                 let distance_normal = Normal::new(obs_particle.dist, distance_std);
                 let direction_normal =
-                    Normal::new(obs_particle.angle, self.observation_noise_std.direction_std);
+                    Normal::new(obs_particle.angle, self.direction_std);
                 particle.weight *= distance_normal.pdf(obs.dist);
                 particle.weight *= direction_normal.pdf(obs.angle);
             }

@@ -1,10 +1,10 @@
 use crate::{convert_radian_in_range, Agent, Coord, Estimator, Input, Output};
 
 use eframe::egui::{
-    show_tooltip_at_pointer, Align2, CentralPanel, Color32, Context, FontFamily, FontId,
-    Id, Key, Pos2, Rect, RichText, Slider, Stroke,  Ui, Vec2,
+    show_tooltip_at_pointer, Align2, CentralPanel, Color32, Context, FontFamily, FontId, Id, Key,
+    Pos2, Rect, RichText, Slider, Stroke, Ui, Vec2,
 };
-use eframe::{run_native, App,  Frame, NativeOptions, Storage, Theme};
+use eframe::{run_native, App, Frame, NativeOptions, Storage, Theme};
 use std::time::{Duration, Instant};
 
 const WIDTH: f32 = 800.0;
@@ -112,7 +112,6 @@ pub fn visualizer(input: Input, output: Output, max_turn: usize) {
     let gui = Egui::new(input, output, max_turn);
     run_native("visualizer", options, Box::new(|_cc| Box::new(gui)));
 }
-
 // 0 <= val <= 1
 pub fn color32(mut val: f32) -> Color32 {
     val = val.min(1.0);
@@ -430,7 +429,6 @@ pub fn view_estimator(ui: &mut Ui, input: &Input, d: f32, estimator: &Estimator,
             x: size * pose.theta.cos() as f32,
             y: -size * pose.theta.sin() as f32,
         };
-        let color = Color32::from_rgba_unmultiplied(0, 0, 255, 255);
-        arrow(ui, origin, vec, color, 2.0);
+        arrow(ui, origin, vec, Color32::BLUE, 2.0);
     }
 }

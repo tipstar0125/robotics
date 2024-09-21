@@ -10,12 +10,12 @@ mod vis;
 
 use agent::{Agent, Pose};
 use common::{convert_radian_in_range, Coord};
-use estimator::{Estimator, MotionNoisePdf, ObservationNoiseStd};
+use estimator::{Estimator, MotionNoisePdf};
 use std::f64::consts::PI;
 
 fn main() {
     let input = Input {
-        time_span: 100.0,    // sec
+        time_span: 100.0,   // sec
         time_interval: 0.1, // sec
         height: 10,
         width: 10,
@@ -54,6 +54,16 @@ fn main() {
     agent.set_camera_noise(distance_noise_rate, direction_noise);
 
     let particle_num = 100;
+
+    // 実験により得た各ノイズの標準偏差
+    let nn_std = 0.19;
+    let no_std = 0.001;
+    let on_std = 0.13;
+    let oo_std = 0.2;
+    let distance_rate_std = 0.14;
+    let direction_std = 0.05;
+    let motion_noise_pdf = MotionNoisePdf::new(nn_std, no_std, on_std, oo_std);
+
     let mut estimator = Estimator::new(
         input.time_interval,
         input.init_pose,
@@ -61,17 +71,15 @@ fn main() {
         input.nu,
         input.omega,
         particle_num,
-        MotionNoisePdf::new(0.19, 0.001, 0.13, 0.2),
-        ObservationNoiseStd {
-            distance_rate_std: 0.14,
-            direction_std: 0.05,
-        },
+        motion_noise_pdf,
+        distance_rate_std,
+        direction_std,
     );
 
     let max_turn = (input.time_span / input.time_interval) as usize;
     for _ in 0..max_turn {
-        let obs = agent.action(&input.landmarks);
-        estimator.decision(&obs, &input.landmarks);
+        let observation = agent.action(&input.landmarks);
+        estimator.decision(&observation, &input.landmarks);
     }
 
     let output = Output {
