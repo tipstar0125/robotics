@@ -1,10 +1,10 @@
-use crate::{convert_radian_in_range, Agent, Coord, Estimator, Input, Output, Pose};
+use crate::{convert_radian_in_range, Agent, Coord, Estimator, Input, Output};
 
 use eframe::egui::{
-    show_tooltip_at_pointer, widgets, Align2, CentralPanel, Color32, Context, FontFamily, FontId,
-    Id, Key, Pos2, Rect, RichText, Slider, Stroke, TextEdit, Ui, Vec2,
+    show_tooltip_at_pointer, Align2, CentralPanel, Color32, Context, FontFamily, FontId,
+    Id, Key, Pos2, Rect, RichText, Slider, Stroke,  Ui, Vec2,
 };
-use eframe::{run_native, App, CreationContext, Frame, NativeOptions, Storage, Theme};
+use eframe::{run_native, App,  Frame, NativeOptions, Storage, Theme};
 use std::time::{Duration, Instant};
 
 const WIDTH: f32 = 800.0;

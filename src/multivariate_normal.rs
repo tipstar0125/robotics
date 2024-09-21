@@ -1,4 +1,4 @@
-use nalgebra::{DMatrix, DVector, Dyn, Matrix};
+use nalgebra::{DMatrix, DVector, Dyn};
 use nalgebra_mvn::MultivariateNormal;
 use rand::{Rng, SeedableRng};
 use rand_distr::StandardNormal;

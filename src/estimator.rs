@@ -1,6 +1,4 @@
-use rand::distributions::WeightedIndex;
 use rand::{Rng, SeedableRng};
-use rand_distr::Distribution;
 use rand_pcg::Pcg64Mcg;
 
 use crate::agent::Pose;

@@ -1,11 +1,3 @@
-#![allow(non_snake_case)]
-#![allow(unused_imports)]
-#![allow(unused_macros)]
-#![allow(clippy::comparison_chain)]
-#![allow(clippy::nonminimal_bool)]
-#![allow(clippy::neg_multiply)]
-#![allow(clippy::type_complexity)]
-#![allow(clippy::needless_range_loop)]
 #![allow(dead_code)]
 
 mod agent;
@@ -19,10 +11,6 @@ mod vis;
 use agent::{Agent, Pose};
 use common::{convert_radian_in_range, Coord};
 use estimator::{Estimator, MotionNoisePdf, ObservationNoiseStd};
-use multivariate_normal::MyMultivariateNormal;
-use rand::{distributions::WeightedIndex, SeedableRng};
-use rand_distr::Distribution;
-use rand_pcg::Pcg64Mcg;
 use std::f64::consts::PI;
 
 fn main() {
