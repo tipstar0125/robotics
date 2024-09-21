@@ -39,7 +39,7 @@ impl Coord {
 }
 
 const PI: f64 = std::f64::consts::PI;
-
+// -π～πの範囲に変換
 pub fn convert_radian_in_range(mut radian: f64) -> f64 {
     while radian > PI {
         radian -= 2.0 * PI;

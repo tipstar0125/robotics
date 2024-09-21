@@ -89,12 +89,12 @@ impl ObservationNoisePdf {
 
 #[derive(Debug)]
 pub struct Estimator {
+    pub time_interval: f64,
+    pub radius: f64,
     pub nu: f64,
     pub omega: f64,
     pub prev_nu: f64,
     pub prev_omega: f64,
-    pub time_interval: f64,
-    pub radius: f64,
     pub particles: Vec<Particle>,
     pub motion_noise_pdf: MotionNoisePdf,
     pub observation_noise_std: ObservationNoiseStd,
@@ -105,22 +105,22 @@ pub struct Estimator {
 
 impl Estimator {
     pub fn new(
+        time_interval: f64,
+        init_pose: Pose,
+        radius: f64,
         nu: f64,
         omega: f64,
-        time_interval: f64,
-        radius: f64,
-        init_pose: Pose,
         particle_num: usize,
         motion_noise_pdf: MotionNoisePdf,
         observation_noise_std: ObservationNoiseStd,
     ) -> Self {
         Self {
+            time_interval,
+            radius,
             nu,
             omega,
             prev_nu: 0.0,
             prev_omega: 0.0,
-            time_interval,
-            radius,
             particles: vec![Particle::new(init_pose, 1.0_f64 / particle_num as f64); particle_num],
             motion_noise_pdf,
             observation_noise_std,
@@ -144,7 +144,7 @@ impl Estimator {
                 + on_noise * (prev_nu.abs() / self.time_interval).sqrt()
                 + oo_noise * (prev_omega.abs() / self.time_interval);
             particle.pose =
-                state_transition(particle.pose, noised_nu, noised_omega, self.time_interval);
+                state_transition(self.time_interval, particle.pose, noised_nu, noised_omega);
             poses.push(particle.pose.clone());
         }
         self.pose_records.push(poses);
@@ -166,24 +166,8 @@ impl Estimator {
         }
         self.weight_records.push(weights);
     }
+    // 系統サンプリング
     pub fn resampling(&mut self) {
-        let sum_weight = self.particles.iter().map(|x| x.weight).sum::<f64>();
-        if sum_weight < 1e-100 {
-            self.particles.iter_mut().for_each(|x| x.weight += 1e-100);
-        }
-        let weights: Vec<_> = self.particles.iter().map(|x| x.weight).collect();
-        let weight_choice = WeightedIndex::new(weights).unwrap();
-        let particles: Vec<_> = (0..self.particles.len())
-            .map(|_| {
-                let mut x = self.particles[weight_choice.sample(&mut self.rng)];
-                x.weight = 1.0 / self.particles.len() as f64;
-                x
-            })
-            .collect();
-
-        self.particles = particles;
-    }
-    pub fn systematic_sampling(&mut self) {
         let mut ws = vec![];
         let mut s = 0.0;
         self.particles.iter().for_each(|particle| {
@@ -214,6 +198,6 @@ impl Estimator {
         self.prev_nu = self.nu;
         self.prev_omega = self.omega;
         self.updater_observation(observation, landmarks);
-        self.systematic_sampling();
+        self.resampling();
     }
 }

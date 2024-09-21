@@ -53,24 +53,24 @@ impl Motion {
     pub fn state_transition_with_noise(
         &mut self,
         rng: &mut Pcg64Mcg,
+        dt: f64,
         pose: &mut Pose,
+        radius: f64,
         mut nu: f64,
         mut omega: f64,
-        radius: f64,
-        dt: f64,
     ) {
         self.bias.on(&mut nu, &mut omega);
         if self.stuck.occur(rng, dt) {
             nu = 0.0;
             omega = 0.0;
         }
-        *pose = state_transition(*pose, nu, omega, dt);
+        *pose = state_transition(dt, *pose, nu, omega);
         pose.theta += self.noise.occur(rng, nu * dt + radius * omega.abs() * dt);
         self.kidnap.occur(rng, dt, pose);
     }
 }
 
-pub fn state_transition(pose: Pose, nu: f64, omega: f64, dt: f64) -> Pose {
+pub fn state_transition(dt: f64, pose: Pose, nu: f64, omega: f64) -> Pose {
     let delta = if omega.abs() < 1e-10 {
         Pose {
             coord: Coord {
@@ -93,26 +93,24 @@ pub fn state_transition(pose: Pose, nu: f64, omega: f64, dt: f64) -> Pose {
 
 #[derive(Debug)]
 pub struct MotionNoise {
-    noise_per_meter: f64,     // 道のりあたりに踏みつける小石の期待値
-    noise_std: f64,           // ロボットが小石を踏んだときにずれる向きの標準偏差
     noise_pdf: Exp<f64>,      // 小石を踏む確率密度関数(指数分布)
     theta_noise: Normal<f64>, // 小石を踏んだ時にずれる角度の確率密度関数(正規分布)
     dist_until_noise: f64,    // 小石を踏むまでの距離
 }
 
 impl MotionNoise {
-    pub fn new(rng: &mut Pcg64Mcg, noise_per_meter: f64, noise_std: f64) -> Self {
+    // noise_per_meter: 道のりあたりに踏みつける小石の期待値
+    // noise_std: ロボットが小石を踏んだときにずれる向きの標準偏差
+    fn new(rng: &mut Pcg64Mcg, noise_per_meter: f64, noise_std: f64) -> Self {
         let noise_pdf = Exp::new(noise_per_meter).unwrap();
         let dist_until_noise = noise_pdf.sample(rng);
         Self {
-            noise_per_meter,
-            noise_std,
             noise_pdf: Exp::new(noise_per_meter).unwrap(),
             theta_noise: Normal::new(0.0, noise_std).unwrap(),
             dist_until_noise,
         }
     }
-    pub fn occur(&mut self, rng: &mut Pcg64Mcg, dist: f64) -> f64 {
+    fn occur(&mut self, rng: &mut Pcg64Mcg, dist: f64) -> f64 {
         self.dist_until_noise -= dist;
         if self.dist_until_noise <= 0.0 {
             self.dist_until_noise += self.noise_pdf.sample(rng);

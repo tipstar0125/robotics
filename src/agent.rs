@@ -41,30 +41,39 @@ impl std::ops::Add<Pose> for Pose {
 #[derive(Debug)]
 pub struct Agent {
     pub id: u64,
-    pub radius: f64, // ロボット半径
+    pub rng: Pcg64Mcg,
+    pub time_interval: f64,
     pub pose: Pose,
-    pub nu: f64,    // ロボットの前方方向の速度
-    pub omega: f64, // ロボットの中心の角速度
+    pub radius: f64, // ロボット半径
+    pub nu: f64,     // ロボットの前方方向の速度
+    pub omega: f64,  // ロボットの中心の角速度
     pub motion: Motion,
     pub camera: Camera,
-    pub rng: Pcg64Mcg,
-    pub obs_records: Vec<Vec<Observation>>,
-    pub pose_records: Vec<Pose>,
+    pub obs_records: Vec<Vec<Observation>>, //  ビジュアライザ用観測記録
+    pub pose_records: Vec<Pose>,            //  ビジュアライザ用姿勢記録
 }
 
 impl Agent {
-    pub fn new(id: u64, radius: f64, pose: Pose, nu: f64, omega: f64) -> Self {
+    pub fn new(
+        id: u64,
+        time_interval: f64,
+        init_pose: Pose,
+        radius: f64,
+        nu: f64,
+        omega: f64,
+    ) -> Self {
         Agent {
             id,
+            rng: Pcg64Mcg::seed_from_u64(id),
+            time_interval,
+            pose: init_pose,
             radius,
-            pose,
             nu,
             omega,
-            motion: Motion::new(),
-            camera: Camera::new(),
-            rng: Pcg64Mcg::seed_from_u64(id),
-            obs_records: vec![vec![]],
-            pose_records: vec![pose],
+            motion: Motion::new(),         // 理想の動き
+            camera: Camera::new(),         // 理想観測
+            obs_records: vec![vec![]],     // t=0では観測はしない
+            pose_records: vec![init_pose], // t=0は初期姿勢
         }
     }
     pub fn set_motion_noise(&mut self, noise_per_meter: f64, noise_std: f64) {
@@ -99,14 +108,14 @@ impl Agent {
     pub fn set_camera_occlusion(&mut self, prob: f64) {
         self.camera.set_occlusion(prob);
     }
-    pub fn action(&mut self, dt: f64, landmarks: &[Coord]) -> Vec<Observation> {
+    pub fn action(&mut self, landmarks: &[Coord]) -> Vec<Observation> {
         self.motion.state_transition_with_noise(
             &mut self.rng,
+            self.time_interval,
             &mut self.pose,
+            self.radius,
             self.nu,
             self.omega,
-            self.radius,
-            dt,
         );
         self.pose_records.push(self.pose);
         let obs = self.camera.observe(&mut self.rng, self.pose, landmarks);
