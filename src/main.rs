@@ -5,7 +5,7 @@ mod camera;
 mod common;
 mod estimator;
 mod motion;
-mod multivariate_normal;
+mod normal;
 mod vis;
 
 use agent::{Agent, Pose};
@@ -15,7 +15,7 @@ use std::f64::consts::PI;
 
 fn main() {
     let input = Input {
-        time_span: 30.0,    // sec
+        time_span: 100.0,    // sec
         time_interval: 0.1, // sec
         height: 10,
         width: 10,

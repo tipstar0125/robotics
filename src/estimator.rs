@@ -5,7 +5,7 @@ use crate::agent::Pose;
 use crate::camera::{observe_landmark, Observation};
 use crate::common::Coord;
 use crate::motion::state_transition;
-use crate::multivariate_normal::MyMultivariateNormal;
+use crate::normal::Normal;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Particle {
@@ -24,28 +24,27 @@ impl Particle {
 
 #[derive(Debug)]
 pub struct MotionNoisePdf {
-    pub nn: f64,
-    pub no: f64,
-    pub on: f64,
-    pub oo: f64,
-    pub pdf: MyMultivariateNormal,
+    pub nn_pdf: Normal,
+    pub no_pdf: Normal,
+    pub on_pdf: Normal,
+    pub oo_pdf: Normal,
 }
 
 impl MotionNoisePdf {
     pub fn new(nn: f64, no: f64, on: f64, oo: f64) -> Self {
         Self {
-            nn,
-            no,
-            on,
-            oo,
-            pdf: MyMultivariateNormal::new_without_correlation(vec![0.0; 4], vec![nn, no, on, oo]),
+            nn_pdf: Normal::new(0.0, nn),
+            no_pdf: Normal::new(0.0, no),
+            on_pdf: Normal::new(0.0, on),
+            oo_pdf: Normal::new(0.0, oo),
         }
     }
-    pub fn sample(&mut self) -> Vec<f64> {
-        self.pdf.sample()
-    }
-    pub fn possibility(&self, xs_vec: Vec<f64>) -> f64 {
-        self.pdf.possibility(xs_vec)
+    pub fn sample(&mut self, rng: &mut Pcg64Mcg) -> Vec<f64> {
+        let nn_noise = self.nn_pdf.sample(rng);
+        let no_noise = self.no_pdf.sample(rng);
+        let on_noise = self.on_pdf.sample(rng);
+        let oo_noise = self.oo_pdf.sample(rng);
+        vec![nn_noise, no_noise, on_noise, oo_noise]
     }
 }
 
@@ -53,36 +52,6 @@ impl MotionNoisePdf {
 pub struct ObservationNoiseStd {
     pub distance_rate_std: f64,
     pub direction_std: f64,
-}
-
-#[derive(Debug)]
-pub struct ObservationNoisePdf {
-    pub distance_mu: f64,
-    pub direction_mu: f64,
-    pub distance_std: f64,
-    pub direction_std: f64,
-    pub pdf: MyMultivariateNormal,
-}
-
-impl ObservationNoisePdf {
-    pub fn new(distance_mu: f64, direction_mu: f64, distance_std: f64, direction_std: f64) -> Self {
-        Self {
-            distance_mu,
-            direction_mu,
-            distance_std,
-            direction_std,
-            pdf: MyMultivariateNormal::new_without_correlation(
-                vec![distance_mu, direction_mu],
-                vec![distance_std, direction_std],
-            ),
-        }
-    }
-    pub fn sample(&mut self) -> Vec<f64> {
-        self.pdf.sample()
-    }
-    pub fn possibility(&self, xs_vec: Vec<f64>) -> f64 {
-        self.pdf.possibility(xs_vec)
-    }
 }
 
 #[derive(Debug)]
@@ -128,7 +97,7 @@ impl Estimator {
     pub fn update_motion(&mut self, prev_nu: f64, prev_omega: f64) {
         let mut poses = vec![];
         for particle in self.particles.iter_mut() {
-            let ns = self.motion_noise_pdf.sample();
+            let ns = self.motion_noise_pdf.sample(&mut self.rng);
             let nn_noise = ns[0];
             let no_noise = ns[1];
             let on_noise = ns[2];
@@ -151,11 +120,11 @@ impl Estimator {
                 let mark = landmarks[obs.id];
                 let obs_particle = observe_landmark(&particle.pose, &mark, obs.id);
                 let distance_std = self.observation_noise_std.distance_rate_std * obs_particle.dist;
-                let pdf = MyMultivariateNormal::new_without_correlation(
-                    vec![obs_particle.dist, obs_particle.angle],
-                    vec![distance_std, self.observation_noise_std.direction_std],
-                );
-                particle.weight *= pdf.possibility(vec![obs.dist, obs.angle]);
+                let distance_normal = Normal::new(obs_particle.dist, distance_std);
+                let direction_normal =
+                    Normal::new(obs_particle.angle, self.observation_noise_std.direction_std);
+                particle.weight *= distance_normal.pdf(obs.dist);
+                particle.weight *= direction_normal.pdf(obs.angle);
             }
         }
     }
