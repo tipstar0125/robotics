@@ -6,7 +6,7 @@ mod common;
 mod estimator;
 mod motion;
 mod normal;
-mod vis; // visualizer
+mod vis;
 
 use agent::{Agent, Pose};
 use common::{convert_radian_in_range, Coord};
@@ -86,7 +86,9 @@ fn main() {
         agents: vec![agent],
         estimator,
     };
-    vis::visualizer(input, output, max_turn); // visualizer
+
+    #[cfg(feature = "local")]
+    vis::visualizer(input, output, max_turn);
 }
 
 pub struct Input {
