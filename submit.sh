@@ -1,4 +1,4 @@
-base_file=./src/bin/$1.rs
+base_file=./src/bin/$1/main.rs
 submit_file=./src/bin/submit.rs
 rm -f $submit_file
 
@@ -18,7 +18,7 @@ for item in "${items[@]}" ; do
     fi
 
     echo "mod $item {" >> $submit_file
-    cat ./src/bin/$item.rs >> $submit_file
+    cat ./src/bin/$1/$item.rs >> $submit_file
     echo "}" >> $submit_file
 done
 
